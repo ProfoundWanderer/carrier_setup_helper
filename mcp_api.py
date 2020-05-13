@@ -37,15 +37,10 @@ class MyCarrierPacketsApi:
 
         try:
             url = 'https://api.mycarrierpackets.com/token'
-            payload = (
-                f'grant_type=password&username={self._api_username}'
-                f'&password={self._api_password}'
-            )
+            payload = f'grant_type=password&username={self._api_username}&password={self._api_password}'
             headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
-            response = requests.request(
-                'POST', url, headers=headers, data=payload
-            )
+            response = requests.request('POST', url, headers=headers, data=payload)
 
             # optional: raise exception for status code
             response.raise_for_status()

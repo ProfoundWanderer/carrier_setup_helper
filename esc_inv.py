@@ -14,10 +14,7 @@ class EscalatedInvites:
     def escalated_invite(self, dot_number):
         print(f'Attempting to invite DOT number: {dot_number}.')
 
-        url = (
-            f'https://api.mycarrierpackets.com/api/v1/carrier/'
-            f'getcustomerpacketwithsw?DOTNumber={dot_number}'
-        )
+        url = f'https://api.mycarrierpackets.com/api/v1/carrier/getcustomerpacketwithsw?DOTNumber={dot_number}'
 
         with open('token_data.json') as token_json_file:
             # loads json file where we saved file
@@ -39,10 +36,7 @@ class EscalatedInvites:
         try:
             ei_resp = json.loads(response.text)
             ei_resp_msg = ei_resp['Message']
-            print(
-                f'{ei_resp_msg} Checking to see if carrier_setup satisfies necessary'
-                f' requirements to be invited and used.'
-            )
+            print(f'{ei_resp_msg} Checking to see if carrier satisfies necessary requirements to be invited and used.')
             results = sw.SaferWatch().check_requirements(dot_number)
         except KeyError as ke:
             # expected if carrier_setup already filled out packet
@@ -66,12 +60,17 @@ if __name__ == '__main__':
        ~*3382665     | ACTIVE    | No        | No for auth or ops
        ~*3077170    | Everything good not invited
        !3077157 | not enough insurance
-       !753733 | Safety and insurance
-       3382665
+       ~!753733 | Safety
+       3382665 (dot auth and dot)
+       3046325 (if auth less than 6 months old but DOT is older than a year then its ok)
 
         * Interstate carrier_setup
         ~ Scenario handled/accounted for
 
-        https://www.saferwatch.com/webservices/CarrierService32.php?Action=CarrierLookup&ServiceKey=DemoServiceKey&CustomerKey=DemoCustomerKey&number=282176
+        # Could use this for authority api but need pv_apcant_id which not able to find so not helpful unless scrape all
+         carriers then do our own search
+        https://li-public.fmcsa.dot.gov/LIVIEW/pkg_carrquery.prc_authorityhistory?pv_apcant_id=1161154&pv_legal_name=
+        MAHIMA^TRUCKING,^L.L.C.&pv_pref_docket=MC01085937&pv_usdot_no=3382665&pv_vpath=LIVIEW%2066645
+
     """
-    EscalatedInvites().escalated_invite(753733)
+    EscalatedInvites().escalated_invite(2333394)
