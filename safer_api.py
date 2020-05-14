@@ -3,7 +3,6 @@ import config
 
 # standard library imports
 from datetime import date, datetime
-import json
 import xml.etree.ElementTree as ElementTree
 
 # third party imports
@@ -33,9 +32,7 @@ class SaferWatch:
             f'ServiceKey={self._service_key}&CustomerKey={self._customer_key}&number={dot_number}'
         )
 
-        # response.content is xml as a str
         response = requests.request('POST', url)
-        # change response into ElementTree so it can be parsed later on
         response_xml = ElementTree.fromstring(response.content)
 
         carrier = response_xml.find('CarrierDetails').find('Identity').find('legalName')
@@ -47,11 +44,16 @@ class SaferWatch:
         carrier_type = response_xml.find('CarrierDetails').find('Operation').find('carrierOperation')
         safety_rating = response_xml.find('CarrierDetails').find('Safety').find('rating')
 
-        # change dot_date from string to a date object
         date_dot_date = datetime.strptime(str_dot_date.text, '%Y-%m-%d')
         # get the date 6 months after the dot_date
         six_mon_past_dot_date = date_dot_date.date() + relativedelta(months=+6)
 
+        """
+        This handles unacceptable safety conditions
+        """
+        if not (safety_rating.text.upper() == 'NOT RATED' or safety_rating.text.upper() == 'SATISFACTORY'):
+            print('not safe')
+            return False
         """
         This handles INACTIVE DOT cases
         """
@@ -63,18 +65,21 @@ class SaferWatch:
             # send email
             print('Carrier DOT status is inactive so we can not use them.')
             return False
-
         """
-        This handles unacceptable safety conditions
+        This handles DOT date not being 6 months old
         """
-        if not (safety_rating.text.upper() == 'NOT RATED' or safety_rating.text.upper() == 'SATISFACTORY'):
-            print('not safe')
+        if date.today() < six_mon_past_dot_date:
+            until_valid = six_mon_past_dot_date - date.today()
+            # send email
+            print(f'Carrier DOT is not at least 6 months old so we can not use them for '
+                  f'another {until_valid.days} days.'
+                  )
             return False
 
         """
-        This handles cases ACTIVE DOT AND INTRASTATE cases
+        This handles cases that pass safety, inactive dot, and dot age check.
         """
-        if (
+        if (  # handles cases ACTIVE DOT AND INTRASTATE cases
                 (carrier_status.text is None and backup_status.upper() == 'ACTIVE')
                 or (carrier_status.text.upper() == 'ACTIVE' and backup_status is None)
                 or (carrier_status.text.upper() == 'ACTIVE' or backup_status.upper() == 'ACTIVE')
@@ -83,40 +88,37 @@ class SaferWatch:
             if date.today() > six_mon_past_dot_date:
                 # send email
                 print('we good, lets send one')
-            else:
-                until_valid = six_mon_past_dot_date - date.today()
-                # send email
-                print(f'Carrier DOT is not at least 6 months old so we can not use them for '
-                      f'another {until_valid.days} days.'
-                      )
-
-        """
-        This handles cases ACTIVE DOT AND INTERSTATE cases
-        """
-        if (
+                return True
+        elif (  # handles cases ACTIVE DOT AND INTERSTATE cases
                 (carrier_status.text is None and backup_status.upper() == 'ACTIVE')
                 or (carrier_status.text.upper() == 'ACTIVE' and backup_status is None)
                 or (carrier_status.text.upper() == 'ACTIVE' or backup_status.upper() == 'ACTIVE')
                 and (carrier_type.text.upper() == 'INTERSTATE')
         ):
-            # change dot_date from string to a date object
             date_auth_date = datetime.strptime(str_auth_date.text, '%Y-%m-%d')
-            # get the date 6 months after the dot_date
             six_mon_past_auth_date = date_auth_date.date() + relativedelta(months=+6)
 
-            # these two need to account for lapses
-            if (date.today() > six_mon_past_auth_date) and (date.today() > six_mon_past_dot_date):
-                print('made it')
-            if date.today() < six_mon_past_auth_date:
-                until_auth_valid = six_mon_past_auth_date - date.today()
+            date_dot_date = datetime.strptime(str_dot_date.text, '%Y-%m-%d')
+            # get the date 12 months after the dot_date
+            twelve_mon_past_dot_date = date_dot_date.date() + relativedelta(months=+12)
+
+            until_auth_valid = six_mon_past_auth_date - date.today()
+            until_dot_valid = six_mon_past_dot_date - date.today()
+
+            # accounts for if authority and dot are less than 6 months old
+            if (date.today() < six_mon_past_auth_date) and (date.today() < twelve_mon_past_dot_date):
                 # send email
-                print(f'Carrier authority is not at least 6 months old so we can not use them for '
-                      f'another {until_auth_valid.days} days.')
-            if date.today() < six_mon_past_dot_date:
-                until_dot_valid = six_mon_past_dot_date - date.today()
-                # send email
-                print(f'Carrier DOT is not at least 6 months old so we can not use them for '
-                      f'another {until_dot_valid.days} days.')
+                print(f'dot and auth no go')
+                return False
+            # if dot and auth are good, it shouldn't ever happen since this script is for escalated invites
+            elif (date.today() > six_mon_past_auth_date) and (date.today() > six_mon_past_dot_date):
+                print('All good and shouldn\'t have been an escalated invite anyways but will account for it.')
+                return True
+            # this accounts for authority lapses but not foolproof since fmcsa authority api is still down
+            elif (date.today() < six_mon_past_auth_date) and (date.today() > twelve_mon_past_dot_date):
+                print('auth no go but dot good to go so can use but will keep turning false')
+                return True
+
         else:
             print(carrier.text)
             print(carrier_status.text)

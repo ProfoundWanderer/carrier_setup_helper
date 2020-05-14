@@ -38,7 +38,7 @@ class EscalatedInvites:
             ei_resp_msg = ei_resp['Message']
             print(f'{ei_resp_msg} Checking to see if carrier satisfies necessary requirements to be invited and used.')
             results = sw.SaferWatch().check_requirements(dot_number)
-        except KeyError as ke:
+        except KeyError:
             # expected if carrier_setup already filled out packet
             print('Carrier has already filled out the packet.')
             exit()
@@ -53,24 +53,24 @@ class EscalatedInvites:
 if __name__ == '__main__':
     """
         DOT STATUS  | STATUS    | Packet?   | 6 months old?
+        -------------------------------------------------------------------------
        ~764564      | ACTIVE    | No        | Yes
        ~282176      | INACTIVE  | No        | Not active
-      ~*2344552     | Active    | Yes       | Yes   | Invited/Accepted/In Sys
+       ~2344552     | Active    | Yes       | Yes   | Invited/Accepted/In Sys
        ~3360987     | ACTIVE    | No        | No
-       ~*3382665     | ACTIVE    | No        | No for auth or ops
-       ~*3077170    | Everything good not invited
-       !3077157 | not enough insurance
-       ~!753733 | Safety
-       3382665 (dot auth and dot)
-       3046325 (if auth less than 6 months old but DOT is older than a year then its ok)
+       ~3382665     | ACTIVE    | No        | No for auth or ops
+       ~3077170     | Everything good not invited
+       !3077157     | not enough insurance
+       ~!753733     | Safety
+       ~3382665     | auth and dot no good
+       ~3046325     | auth less than 6 months old but DOT is older than a year so its ok
 
-        * Interstate carrier_setup
         ~ Scenario handled/accounted for
 
-        # Could use this for authority api but need pv_apcant_id which not able to find so not helpful unless scrape all
-         carriers then do our own search
+        Could use this for authority api but need pv_apcant_id which not able to find so not helpful unless scrape 
+        all carriers then do our own search
         https://li-public.fmcsa.dot.gov/LIVIEW/pkg_carrquery.prc_authorityhistory?pv_apcant_id=1161154&pv_legal_name=
         MAHIMA^TRUCKING,^L.L.C.&pv_pref_docket=MC01085937&pv_usdot_no=3382665&pv_vpath=LIVIEW%2066645
 
     """
-    EscalatedInvites().escalated_invite(2333394)
+    EscalatedInvites().escalated_invite(3163852)
