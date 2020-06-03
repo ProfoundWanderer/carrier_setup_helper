@@ -52,8 +52,8 @@ class SaferWatch:
         This handles unacceptable safety conditions
         """
         if not (safety_rating.text.upper() == 'NOT RATED' or safety_rating.text.upper() == 'SATISFACTORY'):
-            print('not safe')
-            return False
+            email_resp = f'DOT {dot_number} has a safety rating of {safety_rating.text} so we are unable to use them.'
+            return email_resp
         """
         This handles INACTIVE DOT cases
         """
@@ -62,19 +62,18 @@ class SaferWatch:
                 or (carrier_status.text.upper() == 'INACTIVE' and backup_status is None)
                 or (carrier_status.text.upper() == 'INACTIVE' or backup_status.upper() == 'INACTIVE')
         ):
-            # send email
-            print('Carrier DOT status is inactive so we can not use them.')
-            return False
+            email_resp = f'DOT {dot_number} is inactive so we can not use them.'
+            return email_resp
         """
         This handles DOT date not being 6 months old
         """
         if date.today() < six_mon_past_dot_date:
             until_valid = six_mon_past_dot_date - date.today()
             # send email
-            print(f'Carrier DOT is not at least 6 months old so we can not use them for '
-                  f'another {until_valid.days} days.'
-                  )
-            return False
+            email_resp = (f'Carrier DOT is not at least 6 months old so we can not use them for '
+                          f'another {until_valid.days} days.'
+                          )
+            return email_resp
 
         """
         This handles cases that pass safety, inactive dot, and dot age check.
@@ -86,9 +85,8 @@ class SaferWatch:
                 and (carrier_type.text.upper() == 'INTRASTATE')
         ):
             if date.today() > six_mon_past_dot_date:
-                # send email
-                print('we good, lets send one')
-                return True
+                print('Looks good, send invite.')
+                return None
         elif (  # handles cases ACTIVE DOT AND INTERSTATE cases
                 (carrier_status.text is None and backup_status.upper() == 'ACTIVE')
                 or (carrier_status.text.upper() == 'ACTIVE' and backup_status is None)
@@ -108,16 +106,16 @@ class SaferWatch:
             # accounts for if authority and dot are less than 6 months old
             if (date.today() < six_mon_past_auth_date) and (date.today() < twelve_mon_past_dot_date):
                 # send email
-                print(f'dot and auth no go')
+                email_resp = (f'dot and auth no go')
                 return False
             # if dot and auth are good, it shouldn't ever happen since this script is for escalated invites
             elif (date.today() > six_mon_past_auth_date) and (date.today() > six_mon_past_dot_date):
                 print('All good and shouldn\'t have been an escalated invite anyways but will account for it.')
-                return True
+                return None
             # this accounts for authority lapses but not foolproof since fmcsa authority api is still down
             elif (date.today() < six_mon_past_auth_date) and (date.today() > twelve_mon_past_dot_date):
                 print('auth no go but dot good to go so can use but will keep turning false')
-                return True
+                return None
 
         else:
             print(carrier.text)
