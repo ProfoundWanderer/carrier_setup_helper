@@ -1,6 +1,6 @@
 # local imports
 import all_decorators as decs
-import safer_api as sw
+from safer_api import SaferWatch as sw
 
 # standard library imports
 import json
@@ -37,7 +37,7 @@ class EscalatedInvites:
             ei_resp = json.loads(response.text)
             ei_resp_msg = ei_resp['Message']
             print(f'{ei_resp_msg} Checking to see if carrier satisfies necessary requirements to be invited and used.')
-            results = sw.SaferWatch().check_requirements(dot_number)
+            results = sw().check_requirements(dot_number)
             print(results)
         except KeyError:
             # expected if carrier_setup already filled out packet
